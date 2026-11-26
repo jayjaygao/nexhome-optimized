@@ -44,7 +44,18 @@ async def register_device_list_service(hass, entry):
     
     # 从配置中获取筛选设置
     filter_mode = entry.data.get(FILTER_MODE_CONFIG, "exclude")
-    filter_devices = entry.data.get(FILTER_DEVICES_CONFIG, [])
+    filter_devices = list(entry.data.get(FILTER_DEVICES_CONFIG, []) or [])
+
+    # 内置排除列表：长期不用的设备，集成层直接跳过，避免创建协调器轮询网关
+    # 客厅/餐厅的纱帘与遮阳帘（手机界面与小爱均不使用）
+    ALWAYS_EXCLUDE = {
+        '178MAvdQVh1FI9nLk3OpJm',  # 餐厅纱帘
+        '28tNC2s64VjeltcalzuiPO',  # 餐厅遮阳帘
+        '1IxFVBy0kSSuu86Gbl62SM',  # 客厅纱帘
+        '239sJFkYR7ygE0eKUaG4jG',  # 客厅遮阳帘
+    }
+    if filter_mode == "exclude":
+        filter_devices.extend(ALWAYS_EXCLUDE)
     
     # 过滤设备
     if deviceList and filter_devices:
