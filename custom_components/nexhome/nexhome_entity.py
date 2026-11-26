@@ -86,7 +86,9 @@ class NexhomeEntity(CoordinatorEntity, Entity):
 
     def _fire_and_forget_control(self, data):
         """同步控制方法中调用: 立即乐观更新界面，指令异步后台发送"""
-        self.hass.async_create_task(self._async_device_control(data))
+        # 同步实体方法运行在 executor 线程，必须用线程安全的 create_task
+        # 不能用 async_create_task，否则 HA 2026 会拦截并报线程不安全
+        self.hass.create_task(self._async_device_control(data))
 
     @callback
     def _handle_coordinator_update(self) -> None:
