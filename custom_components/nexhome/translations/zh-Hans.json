@@ -1,0 +1,26 @@
+{
+    "config": {
+        "error": {
+            "require_ip": "请输入IP地址",
+            "err_ip": "请输入合法的IP地址"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "ip_address": "IP地址（如192.168.1.10:8085）",
+                    "sn": "IOTID（如111002875D80509FC）"
+                },
+                "description": "请输入中控的IP地址和IOTID（IOTID可以通过施工APP或AIHome查看）",
+                "title": "NEXhome"
+            },
+            "device_filter": {
+                "data": {
+                    "filter_mode": "筛选模式",
+                    "filter_devices": "设备列表"
+                },
+                "description": "{instruction}\n\n{note}",
+                "title": "筛选设备"
+            }
+        }
+    }
+}
