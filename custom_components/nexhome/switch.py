@@ -11,19 +11,6 @@ from homeassistant.config_entries import ConfigEntryState
 _LOGGER = logging.getLogger(__name__)
 StateMap = {
     '0': False,
-import logging
-from homeassistant.components.switch import SwitchEntity
-from .const import DEVICES, DOMAIN, PowerSwitch, IP_CONFIG, SN_CONFIG
-from .nexhome_entity import NexhomeEntity
-from .header import ServiceTool
-from .nexhome_device import NEXHOME_DEVICE
-from .nexhome_coordinator import NexhomeCoordinator
-from .coordinator_manager import CoordinatorManager
-from homeassistant.const import Platform
-from homeassistant.config_entries import ConfigEntryState
-_LOGGER = logging.getLogger(__name__)
-StateMap = {
-    '0': False,
     '1': True
 }
 
@@ -88,7 +75,6 @@ class NexhomeSwitch(NexhomeEntity, SwitchEntity):
         _LOGGER.info("nexhome开")
         self.schedule_update_ha_state()  # 乐观更新: 界面立即显示开
         # 优化: 后台异步发送指令，service call 立即返回
-        # 同步 turn_on 运行在 executor 线程，必须用线程安全的 create_task
         self.hass.create_task(self._async_switch_control('1'))
 
     def turn_off(self, **kwargs):
@@ -96,85 +82,7 @@ class NexhomeSwitch(NexhomeEntity, SwitchEntity):
         _LOGGER.info("nexhome关")
         self.schedule_update_ha_state()  # 乐观更新: 界面立即显示关
         # 优化: 后台异步发送指令，service call 立即返回
-        # 同步 turn_off 运行在 executor 线程，必须用线程安全的 create_task
         self.hass.create_task(self._async_switch_control('0'))
-        
-# class NexhomeSceneSwitch(NexhomeSwitch):
-#     # 1=开，0=关    
-#     def switch_control(self, val):
-#         data = {'identifier': 'PowerSwitch', 'value': val}
-#         self._tool.device_control(data, self._device['address'])    '1': True
-}
-
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    IP = config_entry.data.get(IP_CONFIG)
-    SN = config_entry.data.get(SN_CONFIG)
-    Tool = ServiceTool(IP, SN)
-    devices = hass.data[DOMAIN][DEVICES]
-    
-    # 获取协调器管理器实例
-    coordinator_manager = CoordinatorManager.get_instance(hass, Tool, config_entry.entry_id)
-    
-    if devices:
-        switches = []
-        for device in devices:
-            device_key = device.get("device_type_id")
-            device_address = device.get("address")
-            if device_key in NEXHOME_DEVICE:
-                for entity_key, config in NEXHOME_DEVICE[device_key]["entities"].items():
-                    if config["type"] == Platform.SWITCH:
-                        identifiers = config["identifiers"]
-                        # 使用协调器管理器获取或创建共享协调器
-                        coordinator = coordinator_manager.get_or_create_coordinator(device_address, identifiers)
-                        if config_entry.state == ConfigEntryState.SETUP_IN_PROGRESS:
-                            await coordinator.async_config_entry_first_refresh()
-                        switches.append(NexhomeSwitch(device, entity_key, Tool, coordinator))
-        async_add_entities(switches, update_before_add=True)
-
-
-class NexhomeSwitch(NexhomeEntity, SwitchEntity):
-
-    def __init__(self, device, entity_key, tool, coordinator):
-        super().__init__(device, entity_key, coordinator)
-        self._state = False
-        self._tool = tool
-
-    @property
-    def is_on(self):
-        if self._device.get(PowerSwitch) is not None:
-            return self._device[PowerSwitch] == '1'
-        else:
-            return False
-    
-    # 1=开，0=关
-    async def _async_switch_control(self, val):
-        """优化: 控制指令放到 executor 后台线程，不阻塞事件循环"""
-        import asyncio
-        data = {'identifier': PowerSwitch, 'value': val}
-        result = await self.hass.async_add_executor_job(
-            self._tool.device_control, data, self._device['address']
-        )
-        # 指令发出后短暂延迟再刷新，让网关有时间同步状态
-        await asyncio.sleep(0.5)
-        await self.coordinator.async_request_refresh()
-
-    def switch_control(self, val):
-        data = {'identifier': PowerSwitch, 'value': val}
-        self._tool.device_control(data, self._device['address'])
-
-    def turn_on(self, **kwargs):
-        self._device[PowerSwitch] = '1'
-        _LOGGER.info("nexhome开")
-        self.schedule_update_ha_state()  # 乐观更新: 界面立即显示开
-        # 优化: 后台异步发送指令，service call 立即返回
-        self.hass.async_create_task(self._async_switch_control('1'))
-
-    def turn_off(self, **kwargs):
-        self._device[PowerSwitch] = '0'
-        _LOGGER.info("nexhome关")
-        self.schedule_update_ha_state()  # 乐观更新: 界面立即显示关
-        # 优化: 后台异步发送指令，service call 立即返回
-        self.hass.async_create_task(self._async_switch_control('0'))
         
 # class NexhomeSceneSwitch(NexhomeSwitch):
 #     # 1=开，0=关    
