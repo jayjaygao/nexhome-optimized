@@ -12,8 +12,8 @@ DISCOVER = 'discover_obj'
 FILTER_MODE_CONFIG = "filter_mode"  # "include" 或 "exclude"
 FILTER_DEVICES_CONFIG = "filter_devices"  # 设备ID列表
 
-# 轮询时间 (优化: 3s -> 8s, 降低网关负载约 60%，控制指令不再被轮询请求淹没)
-TIME_NUMBER = 8
+# 轮询时间 (优化: 3s -> 8s -> 15s, 进一步降低网关负载；控制指令走独立通道不受影响)
+TIME_NUMBER = 15
 
 FAN_MODEL_MAP = {
     "0": "自动",
