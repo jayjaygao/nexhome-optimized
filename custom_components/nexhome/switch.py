@@ -56,15 +56,17 @@ class NexhomeSwitch(NexhomeEntity, SwitchEntity):
     
     # 1=开，0=关
     async def _async_switch_control(self, val):
-        """优化: 控制指令放到 executor 后台线程，不阻塞事件循环"""
-        import asyncio
+        """优化: 控制指令放到 executor 后台线程，不阻塞事件循环.
+        
+        不做强制刷新: turn_on/off 已乐观更新界面, 强制 refresh 在网关
+        状态尚未同步时会把界面状态拉回旧值(关灯后显示延迟的真正原因),
+        且给网关增加一次无谓的批量读取。状态由 coordinator 正常轮询同步。
+        """
         data = {'identifier': PowerSwitch, 'value': val}
         result = await self.hass.async_add_executor_job(
             self._tool.device_control, data, self._device['address']
         )
-        # 指令发出后短暂延迟再刷新，让网关有时间同步状态
-        await asyncio.sleep(0.5)
-        await self.coordinator.async_request_refresh()
+        return result
 
     def switch_control(self, val):
         data = {'identifier': PowerSwitch, 'value': val}
